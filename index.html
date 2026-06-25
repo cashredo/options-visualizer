@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Black–Scholes / Julian Quevedo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Mono:wght@300;400&display=swap" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="config.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:     #0d0d0d;
+      --text:   #ebe5dc;
+      --dim:    rgba(235,229,220,0.32);
+      --dimmer: rgba(235,229,220,0.10);
+      --accent: #c9a96e;
+      --border: rgba(235,229,220,0.07);
+      --ff-h:   'Cormorant Garamond', serif;
+      --ff-m:   'DM Mono', monospace;
+    }
+
+    html { background: var(--bg); }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--ff-m);
+      font-size: 13px;
+      cursor: none;
+    }
+
+    /* ── Custom cursor ─────────────────────────────── */
+    #cd { position:fixed; left:0; top:0; width:7px; height:7px; border-radius:50%;
+          background:var(--accent); pointer-events:none; z-index:9999; will-change:transform;
+          opacity:0; transition:opacity .3s; }
+    #cr { position:fixed; left:0; top:0; width:30px; height:30px; border-radius:50%;
+          border:1px solid rgba(201,169,110,.35); pointer-events:none; z-index:9998; will-change:transform;
+          opacity:0; transition:opacity .3s; }
+
+    /* ── Nav ───────────────────────────────────────── */
+    nav {
+      position: fixed; top:0; left:0; right:0; z-index:200;
+      display:flex; justify-content:space-between; align-items:center;
+      padding: 28px 48px;
+    }
+    nav a {
+      font-family: var(--ff-m); font-size:10px; letter-spacing:.18em;
+      text-transform:uppercase; color:var(--dim); text-decoration:none; transition:color .2s;
+    }
+    nav a:hover { color:var(--text); }
+    .nav-c { font-family:var(--ff-h); font-size:13px; letter-spacing:.12em;
+              color:var(--dimmer); font-style:italic; }
+
+    /* ── Hero ──────────────────────────────────────── */
+    .hero {
+      position: relative; height: 100vh;
+      display:flex; flex-direction:column; justify-content:flex-end;
+      overflow: hidden;
+    }
+    #hero-canvas { position:absolute; inset:0; width:100%; height:100%; display:block; }
+    .hero-body { position:relative; z-index:2; padding:0 48px 56px; }
+    .hero h1 {
+      font-family:var(--ff-h); font-size:clamp(68px,11vw,148px);
+      font-weight:300; font-style:italic; line-height:.91;
+      color:var(--text); letter-spacing:-.02em; pointer-events:none;
+    }
+    .hero-foot { margin-top:24px; display:flex; justify-content:space-between; align-items:flex-end; }
+    .hero-desc { font-size:10px; letter-spacing:.18em; text-transform:uppercase;
+                 color:var(--dim); line-height:2; max-width:300px; }
+    .scroll-ind { display:flex; flex-direction:column; align-items:center; gap:10px;
+                  font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--dimmer); }
+    .scroll-ind::before { content:''; display:block; width:1px; height:44px;
+                          background:var(--dimmer); animation:pulse 2s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:.3;transform:scaleY(1)} 50%{opacity:1;transform:scaleY(.6)} }
+    .hero-rule { position:absolute; bottom:0; left:48px; right:48px; height:1px; background:var(--border); }
+
+    /* ── Sections ──────────────────────────────────── */
+    section { padding:96px 48px; border-bottom:1px solid var(--border); }
+    .sec-lbl { font-size:10px; letter-spacing:.22em; text-transform:uppercase; color:var(--dimmer);
+               margin-bottom:56px; display:flex; align-items:center; gap:18px; }
+    .sec-lbl::after { content:''; flex:1; height:1px; background:var(--border); }
+    .sec-h { font-family:var(--ff-h); font-size:clamp(40px,5.5vw,76px); font-weight:300;
+              font-style:italic; color:var(--text); line-height:1.05; margin-bottom:52px; }
+
+    /* ── Parameters ────────────────────────────────── */
+    .pg { display:grid; grid-template-columns:1fr 1fr; gap:0 80px; }
+    @media(max-width:800px){.pg{grid-template-columns:1fr;}}
+    .pr { padding:22px 0; border-bottom:1px solid var(--border); }
+    .pr:first-child { border-top:1px solid var(--border); }
+    .ph { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:16px; }
+    .pn { font-size:10px; letter-spacing:.18em; text-transform:uppercase; color:var(--dim); }
+    .pv { font-family:var(--ff-h); font-size:30px; font-weight:300; color:var(--text); }
+
+    input[type=range] {
+      appearance:none; -webkit-appearance:none;
+      width:100%; height:1px; background:rgba(235,229,220,.12); outline:none; cursor:none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance:none; width:9px; height:9px; border-radius:50%; background:var(--accent);
+    }
+    input[type=range]::-moz-range-thumb {
+      width:9px; height:9px; border-radius:50%; background:var(--accent); border:none;
+    }
+
+    /* ── Ticker lookup ─────────────────────────────── */
+    .ticker-row {
+      display:flex; align-items:center; gap:14px; margin-bottom:44px; flex-wrap:wrap;
+    }
+    .ticker-label {
+      font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--dimmer);
+    }
+    #ticker-in {
+      font-family:var(--ff-m); font-size:12px; letter-spacing:.16em; background:transparent;
+      border:none; border-bottom:1px solid rgba(235,229,220,.18); color:var(--text);
+      padding:7px 0; width:100px; outline:none; text-transform:uppercase; caret-color:var(--accent);
+    }
+    #ticker-in::placeholder { color:var(--dimmer); letter-spacing:.1em; }
+    #ticker-btn {
+      font-family:var(--ff-m); font-size:9px; letter-spacing:.22em; text-transform:uppercase;
+      background:transparent; border:1px solid var(--border); color:var(--dim);
+      padding:7px 16px; cursor:none; transition:color .2s,border-color .2s;
+    }
+    #ticker-btn:hover { color:var(--text); border-color:rgba(235,229,220,.22); }
+    #ticker-status { font-size:10px; letter-spacing:.08em; color:var(--dimmer); }
+
+    /* ── Wikipedia links ───────────────────────────── */
+    .wiki-lnk { color:inherit; text-decoration:none; transition:color .2s; }
+    .wiki-lnk:hover { color:var(--text); }
+    .wiki-lnk em { font-family:var(--ff-h); font-style:italic; font-size:20px;
+                   color:var(--accent); margin-right:8px; letter-spacing:0; }
+    .wiki-lnk:hover em { color:var(--accent); }
+    .wiki-sup { font-size:8px; margin-left:4px; opacity:.5; vertical-align:super; }
+    /* sec-lbl wiki link */
+    .sec-lbl .wiki-lnk { font-size:9px; letter-spacing:.1em; opacity:.55; }
+    .sec-lbl .wiki-lnk:hover { opacity:1; color:var(--dim); }
+
+    /* ── Output strip ──────────────────────────────── */
+    .os { display:grid; grid-template-columns:1fr 1fr 1fr; gap:1px; background:var(--border); margin-top:60px; }
+    @media(max-width:600px){.os{grid-template-columns:1fr;}}
+    .oc { background:var(--bg); padding:40px 32px; }
+    .ol { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dimmer); margin-bottom:14px; }
+    .ov { font-family:var(--ff-h); font-size:clamp(34px,4vw,54px); font-weight:300; line-height:1; }
+    .ov.call{color:var(--text);} .ov.put{color:var(--dim);} .ov.money{color:var(--accent);}
+    .os2{font-size:10px;color:var(--dimmer);margin-top:8px;}
+
+    /* ── Terminal ──────────────────────────────────── */
+    .term { margin-top:36px; padding:28px 32px; border:1px solid var(--border); background:#090909; }
+    .term pre { font-family:var(--ff-m); font-size:11px; color:var(--dim); line-height:1.9; white-space:pre; }
+    .ta{color:var(--accent);} .tw{color:var(--text);} .tg{color:#7ecb8f;} .tr2{color:#e07070;}
+
+    /* ── Charts ────────────────────────────────────── */
+    .cw { display:grid; grid-template-columns:1fr 1fr; gap:1px; background:var(--border); }
+    @media(max-width:800px){.cw{grid-template-columns:1fr;}}
+    .cc { background:var(--bg); padding:44px 32px 32px; }
+    .cl { font-size:10px; letter-spacing:.2em; text-transform:uppercase; color:var(--dimmer); margin-bottom:28px; }
+
+    /* ── Greeks ────────────────────────────────────── */
+    .gw { display:grid; grid-template-columns:repeat(5,1fr); gap:1px; background:var(--border); }
+    @media(max-width:900px){.gw{grid-template-columns:repeat(2,1fr);}}
+    .gc { background:var(--bg); padding:40px 28px; }
+    .gs { font-family:var(--ff-h); font-size:46px; font-style:italic; font-weight:300;
+           color:var(--accent); line-height:1; }
+    .gn { font-size:9px; letter-spacing:.22em; text-transform:uppercase; color:var(--dimmer); margin:6px 0 24px; }
+    .gr { display:flex; justify-content:space-between; align-items:baseline;
+          border-bottom:1px solid var(--border); padding-bottom:7px; margin-bottom:7px; }
+    .gl { font-size:9px; color:var(--dimmer); }
+    .gv { font-family:var(--ff-h); font-size:22px; font-weight:300; color:var(--text); }
+    .gv.neg{color:var(--dim);}
+    .gd { font-size:9px; color:var(--dimmer); line-height:1.7; margin-top:16px; }
+
+    /* ── What is this ─────────────────────────────── */
+    .wit-body { max-width: 680px; display: flex; flex-direction: column; gap: 22px; }
+    .wit-p { font-size: 13px; line-height: 2; color: var(--dim); letter-spacing: .03em; }
+    .wit-link { color: var(--accent); text-decoration: none; transition: color .2s; }
+    .wit-link:hover { color: var(--text); }
+
+    /* ── Footer ────────────────────────────────────── */
+    footer { padding:44px 48px; display:flex; justify-content:space-between; align-items:center; }
+    footer p { font-size:10px; letter-spacing:.14em; color:var(--dimmer); text-transform:uppercase; }
+    footer a { color:var(--dim); text-decoration:none; transition:color .2s; }
+    footer a:hover { color:var(--text); }
+  </style>
+</head>
+<body>
+
+<div id="cd"></div>
+<div id="cr"></div>
+
+<nav>
+  <a href="#">← Portfolio</a>
+  <span class="nav-c">Julian Quevedo</span>
+  <a href="https://github.com/cashredo" target="_blank">GitHub ↗</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="hero-canvas"></canvas>
+  <div class="hero-body">
+    <h1>Black<br>&ndash;Scholes</h1>
+    <div class="hero-foot">
+      <p class="hero-desc">Options pricing model &amp; Greeks visualizer — built from first principles</p>
+      <div class="scroll-ind">Scroll</div>
+    </div>
+  </div>
+  <div class="hero-rule"></div>
+</section>
+
+<!-- WHAT IS THIS -->
+<section id="what-is-this">
+  <div class="sec-lbl">00 — Overview</div>
+  <h2 class="sec-h">What is this?</h2>
+  <div class="wit-body">
+    <p class="wit-p">
+      The <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model" target="_blank" rel="noopener" class="wit-link">Black–Scholes model ↗</a>
+      is a mathematical framework for pricing European-style options contracts. Given five inputs —
+      stock price, strike price, time to expiry, risk-free rate, and implied volatility — it
+      produces a fair-value estimate for a call or put, and a set of sensitivities known as
+      the <a href="https://en.wikipedia.org/wiki/Greeks_(finance)" target="_blank" rel="noopener" class="wit-link">Greeks ↗</a>.
+    </p>
+    <p class="wit-p">
+      This tool lets you drag those inputs in real time and watch how
+      <a href="https://en.wikipedia.org/wiki/Delta_(letter)#Finance" target="_blank" rel="noopener" class="wit-link">Delta ↗</a>,
+      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Gamma" target="_blank" rel="noopener" class="wit-link">Gamma ↗</a>,
+      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Theta" target="_blank" rel="noopener" class="wit-link">Theta ↗</a>, and
+      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Vega" target="_blank" rel="noopener" class="wit-link">Vega ↗</a>
+      shift — built from first principles using the closed-form Black–Scholes equations, no libraries.
+    </p>
+  </div>
+</section>
+
+<!-- PARAMETERS -->
+<section>
+  <div class="sec-lbl">01 — Model Parameters <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model" target="_blank" rel="noopener" class="wiki-lnk">Black–Scholes ↗</a></div>
+  <h2 class="sec-h">Set your<br>variables.</h2>
+
+  <div class="ticker-row">
+    <span class="ticker-label">Live Quote</span>
+    <input type="text" id="ticker-in" placeholder="AAPL" maxlength="10" autocomplete="off" spellcheck="false" />
+    <button id="ticker-btn">Fetch ↗</button>
+    <span id="ticker-status"></span>
+  </div>
+
+  <div class="pg">
+    <div>
+      <div class="pr">
+        <div class="ph">
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Underlying" target="_blank" rel="noopener" class="wiki-lnk"><em>S</em> Stock Price<span class="wiki-sup">↗</span></a></div>
+          <div class="pv" id="S-val">$100.00</div>
+        </div>
+        <input type="range" id="S" min="1" max="500" value="100" step="0.5" />
+      </div>
+      <div class="pr">
+        <div class="ph">
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Strike_price" target="_blank" rel="noopener" class="wiki-lnk"><em>K</em> Strike Price<span class="wiki-sup">↗</span></a></div>
+          <div class="pv" id="K-val">$100.00</div>
+        </div>
+        <input type="range" id="K" min="1" max="500" value="100" step="0.5" />
+      </div>
+      <div class="pr">
+        <div class="ph">
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Expiration_(options)" target="_blank" rel="noopener" class="wiki-lnk"><em>T</em> Days to Expiry<span class="wiki-sup">↗</span></a></div>
+          <div class="pv" id="T-val">30 days</div>
+        </div>
+        <input type="range" id="T" min="1" max="730" value="30" step="1" />
+      </div>
+    </div>
+    <div>
+      <div class="pr">
+        <div class="ph">
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Implied_volatility" target="_blank" rel="noopener" class="wiki-lnk"><em>σ</em> Implied Volatility<span class="wiki-sup">↗</span></a></div>
+          <div class="pv" id="sigma-val">30.0%</div>
+        </div>
+        <input type="range" id="sigma" min="1" max="200" value="30" step="0.5" />
+      </div>
+      <div class="pr">
+        <div class="ph">
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Risk-free_interest_rate" target="_blank" rel="noopener" class="wiki-lnk"><em>r</em> Risk-Free Rate<span class="wiki-sup">↗</span></a></div>
+          <div class="pv" id="r-val">5.30%</div>
+        </div>
+        <input type="range" id="r" min="0" max="20" value="5.3" step="0.1" />
+      </div>
+      <div class="pr" style="border-bottom:1px solid var(--border);">
+        <div class="ph" style="margin-bottom:0;">
+          <div class="pn">1σ Implied Move</div>
+          <div class="pv" id="implied-move" style="font-size:20px;color:var(--accent);">±$—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="os">
+    <div class="oc"><div class="ol">Call Price</div><div class="ov call" id="call-price">$—</div><div class="os2" id="call-d-sub">Δ —</div></div>
+    <div class="oc"><div class="ol">Put Price</div><div class="ov put" id="put-price">$—</div><div class="os2" id="put-d-sub">Δ —</div></div>
+    <div class="oc"><div class="ol">Moneyness</div><div class="ov money" id="moneyness-val">ATM</div><div class="os2" id="moneyness-sub">S/K = —</div></div>
+  </div>
+
+  <div class="term"><pre id="term-out"></pre></div>
+</section>
+
+<!-- CHARTS -->
+<section>
+  <div class="sec-lbl">02 — Visualizations</div>
+  <h2 class="sec-h">See the<br>structure.</h2>
+  <div class="cw">
+    <div class="cc"><div class="cl">Payoff Diagram — P&amp;L at Expiry</div><canvas id="chart-payoff" height="220"></canvas></div>
+    <div class="cc"><div class="cl">Delta Curve — Δ vs. Underlying Price</div><canvas id="chart-delta" height="220"></canvas></div>
+  </div>
+</section>
+
+<!-- GREEKS -->
+<section>
+  <div class="sec-lbl">03 — The Greeks</div>
+  <h2 class="sec-h">Measure<br>the risk.</h2>
+  <div class="gw">
+    <div class="gc">
+      <div class="gs">Δ</div><div class="gn">Delta</div>
+      <div class="gr"><span class="gl">Call</span><span class="gv" id="g-delta-call">—</span></div>
+      <div class="gr"><span class="gl">Put</span><span class="gv neg" id="g-delta-put">—</span></div>
+      <p class="gd">$ change per $1 move in underlying</p>
+    </div>
+    <div class="gc">
+      <div class="gs">Γ</div><div class="gn">Gamma</div>
+      <div class="gr"><span class="gl">C &amp; P</span><span class="gv" id="g-gamma">—</span></div>
+      <p class="gd">Rate of delta change per $1 move. Peaks ATM.</p>
+    </div>
+    <div class="gc">
+      <div class="gs">Θ</div><div class="gn">Theta</div>
+      <div class="gr"><span class="gl">Call</span><span class="gv neg" id="g-theta-call">—</span></div>
+      <div class="gr"><span class="gl">Put</span><span class="gv neg" id="g-theta-put">—</span></div>
+      <p class="gd">Daily time decay ($/day)</p>
+    </div>
+    <div class="gc">
+      <div class="gs">ν</div><div class="gn">Vega</div>
+      <div class="gr"><span class="gl">C &amp; P</span><span class="gv" id="g-vega">—</span></div>
+      <p class="gd">$ change per 1% rise in implied vol</p>
+    </div>
+    <div class="gc">
+      <div class="gs">ρ</div><div class="gn">Rho</div>
+      <div class="gr"><span class="gl">Call</span><span class="gv" id="g-rho-call">—</span></div>
+      <div class="gr"><span class="gl">Put</span><span class="gv neg" id="g-rho-put">—</span></div>
+      <p class="gd">$ change per 1% rise in risk-free rate</p>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <p>Black–Scholes Visualizer — Julian Quevedo © 2026</p>
+  <p><a href="#">← Back to portfolio</a></p>
+</footer>
+
+<script>
+// ── Custom cursor ──────────────────────────────────────────
+const cd=document.getElementById('cd'), cr=document.getElementById('cr');
+let mx=-200,my=-200,rx=-200,ry=-200,cursorVisible=false;
+document.addEventListener('mousemove',e=>{
+  mx=e.clientX; my=e.clientY;
+  if(!cursorVisible){
+    cursorVisible=true;
+    cd.style.opacity='1'; cr.style.opacity='1';
+  }
+});
+(function loop(){
+  rx+=(mx-rx)*.1; ry+=(my-ry)*.1;
+  cd.style.transform=`translate(${mx-3.5}px,${my-3.5}px)`;
+  cr.style.transform=`translate(${rx-15}px,${ry-15}px)`;
+  requestAnimationFrame(loop);
+})();
+
+// ── Smooth scroll (lerp via window.scrollTo) ───────────────
+let tY=0,cY=0;
+window.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const max=document.documentElement.scrollHeight-window.innerHeight;
+  tY=Math.max(0,Math.min(tY+e.deltaY*.9,max));
+},{passive:false});
+let tY0=0;
+window.addEventListener('touchstart',e=>{tY0=e.touches[0].clientY;},{passive:true});
+window.addEventListener('touchmove',e=>{
+  const max=document.documentElement.scrollHeight-window.innerHeight;
+  tY=Math.max(0,Math.min(tY+(tY0-e.touches[0].clientY),max));
+  tY0=e.touches[0].clientY;
+},{passive:true});
+(function sl(){
+  const diff=tY-cY;
+  if(Math.abs(diff)>.05){cY+=diff*.082;window.scrollTo(0,cY);}
+  requestAnimationFrame(sl);
+})();
+
+// ── Hero WebGL distortion ──────────────────────────────────
+(function(){
+  const canvas=document.getElementById('hero-canvas');
+  const gl=canvas.getContext('webgl',{alpha:false})||canvas.getContext('experimental-webgl',{alpha:false});
+  if(!gl)return;
+  function resize(){canvas.width=canvas.clientWidth||window.innerWidth;canvas.height=canvas.clientHeight||window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+
+  const VS=`attribute vec2 p;varying vec2 uv;void main(){uv=vec2(p.x*.5+.5,.5-p.y*.5);gl_Position=vec4(p,0,1);}`;
+  const FS=`precision highp float;
+uniform sampler2D tex;uniform vec2 mouse;uniform float str;uniform float t;uniform int hasImg;varying vec2 uv;
+float h(vec2 p){return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5);}
+void main(){
+  vec2 c=uv,diff=c-mouse;float d=length(diff);
+  float inf=smoothstep(.44,.0,d);
+  vec2 disp=normalize(diff+.001)*inf*str*.044;
+  vec2 dc=c-disp;
+  if(hasImg==1){gl_FragColor=texture2D(tex,clamp(dc,.001,.999));}
+  else{
+    vec2 g2=floor(dc*vec2(88.,48.));float n=h(g2+floor(t*.25));
+    float cell=step(.80,n);float br=mix(.025,.13,cell*h(g2*1.9));
+    float vig=1.-smoothstep(.28,.95,length((dc-.5)*vec2(1.,1.3)));
+    gl_FragColor=vec4(vec3(br*vig),1.);
+  }
+}`;
+  function sh(type,src){const s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);return s;}
+  const prog=gl.createProgram();
+  gl.attachShader(prog,sh(gl.VERTEX_SHADER,VS));gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,FS));
+  gl.linkProgram(prog);gl.useProgram(prog);
+  const buf=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,buf);
+  gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
+  const ap=gl.getAttribLocation(prog,'p');gl.enableVertexAttribArray(ap);gl.vertexAttribPointer(ap,2,gl.FLOAT,false,0,0);
+  const uM=gl.getUniformLocation(prog,'mouse'),uS=gl.getUniformLocation(prog,'str'),
+        uT=gl.getUniformLocation(prog,'t'),uH=gl.getUniformLocation(prog,'hasImg');
+  const tex=gl.createTexture();
+  gl.bindTexture(gl.TEXTURE_2D,tex);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR);
+  gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);
+  gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,1,1,0,gl.RGBA,gl.UNSIGNED_BYTE,new Uint8Array([13,13,13,255]));
+  let hasImg=0;
+  const img=new Image();
+  img.onload=()=>{gl.bindTexture(gl.TEXTURE_2D,tex);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,img);hasImg=1;};
+  img.src='portrait.jpg';
+  let hx=.5,hy=.5,str=0,phx=.5,phy=.5,tick=0;
+  document.addEventListener('mousemove',e=>{
+    const r=canvas.getBoundingClientRect();
+    phx=hx;phy=hy;hx=(e.clientX-r.left)/r.width;hy=(e.clientY-r.top)/r.height;
+    str=Math.min(str+Math.hypot(hx-phx,hy-phy)*28,1);
+  });
+  (function render(){
+    tick+=.016;str*=.93;resize();
+    gl.viewport(0,0,canvas.width,canvas.height);
+    gl.uniform2f(uM,hx,1-hy);gl.uniform1f(uS,str);gl.uniform1f(uT,tick);gl.uniform1i(uH,hasImg);
+    gl.drawArrays(gl.TRIANGLE_STRIP,0,4);requestAnimationFrame(render);
+  })();
+})();
+
+// ── Black-Scholes ──────────────────────────────────────────
+function normCDF(x){
+  const a1=.254829592,a2=-.284496736,a3=1.421413741,a4=-1.453152027,a5=1.061405429,p=.3275911;
+  const s=x<0?-1:1;x=Math.abs(x)/Math.sqrt(2);const t=1/(1+p*x);
+  return .5*(1+s*(1-(((((a5*t+a4)*t+a3)*t+a2)*t+a1)*t)*Math.exp(-x*x)));
+}
+function normPDF(x){return Math.exp(-.5*x*x)/Math.sqrt(2*Math.PI);}
+function bsm(S,K,T,sig,r){
+  if(T<=0||sig<=0||S<=0||K<=0)return{call:Math.max(S-K,0),put:Math.max(K-S,0),d1:NaN,d2:NaN,
+    delta:{call:S>=K?1:0,put:S<=K?-1:0},gamma:0,theta:{call:0,put:0},vega:0,rho:{call:0,put:0}};
+  const sq=Math.sqrt(T),d1=(Math.log(S/K)+(r+.5*sig*sig)*T)/(sig*sq),d2=d1-sig*sq;
+  const disc=Math.exp(-r*T),Nd1=normCDF(d1),Nd2=normCDF(d2),nd1=normPDF(d1);
+  return{
+    call:S*Nd1-K*disc*Nd2, put:K*disc*normCDF(-d2)-S*normCDF(-d1), d1,d2,
+    delta:{call:Nd1,put:Nd1-1},gamma:nd1/(S*sig*sq),
+    theta:{call:(-S*nd1*sig/(2*sq)-r*K*disc*Nd2)/365,put:(-S*nd1*sig/(2*sq)+r*K*disc*normCDF(-d2))/365},
+    vega:S*nd1*sq/100, rho:{call:K*T*disc*Nd2/100,put:-K*T*disc*normCDF(-d2)/100}
+  };
+}
+
+// ── Finnhub live quote ─────────────────────────────────────
+const FKEY = window.FINNHUB_KEY || '';
+async function fetchQuote(){
+  const sym=document.getElementById('ticker-in').value.trim().toUpperCase();
+  if(!sym)return;
+  const status=document.getElementById('ticker-status');
+  status.textContent='fetching…';
+  status.style.color='var(--dimmer)';
+  try{
+    const res=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${FKEY}`);
+    const d=await res.json();
+    if(!d.c||d.c===0){status.textContent='symbol not found';return;}
+    const sEl=document.getElementById('S'), kEl=document.getElementById('K');
+    const price=Math.min(500,Math.max(1,parseFloat(d.c.toFixed(2))));
+    sEl.value=price; kEl.value=price;
+    update();
+    const sign=d.dp>=0?'+':'';
+    status.textContent=`${sym}  $${d.c.toFixed(2)}  (${sign}${d.dp.toFixed(2)}%)`;
+    status.style.color=d.dp>=0?'#7ecb8f':'#e07070';
+  }catch(e){
+    status.textContent='fetch failed';
+    status.style.color='#e07070';
+  }
+}
+document.getElementById('ticker-btn').addEventListener('click',fetchQuote);
+document.getElementById('ticker-in').addEventListener('keydown',e=>{if(e.key==='Enter')fetchQuote();});
+
+// ── Charts ─────────────────────────────────────────────────
+Chart.defaults.color='rgba(235,229,220,.25)';
+Chart.defaults.font.family="'DM Mono',monospace";
+Chart.defaults.font.size=10;
+const vlPlugin={id:'vl',afterDraw(ch){
+  if(ch.config.options._vl==null)return;
+  const{ctx,chartArea,scales}=ch,x=scales.x.getPixelForValue(ch.config.options._vl);
+  ctx.save();ctx.beginPath();ctx.moveTo(x,chartArea.top);ctx.lineTo(x,chartArea.bottom);
+  ctx.strokeStyle='rgba(201,169,110,.3)';ctx.lineWidth=1;ctx.setLineDash([3,6]);ctx.stroke();ctx.restore();
+}};
+Chart.register(vlPlugin);
+const bOpts={responsive:true,animation:{duration:55},interaction:{mode:'index',intersect:false},
+  plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(9,9,9,.96)',borderColor:'rgba(235,229,220,.08)',
+    borderWidth:1,titleColor:'rgba(235,229,220,.35)',bodyColor:'#ebe5dc'}},
+  scales:{x:{grid:{color:'rgba(235,229,220,.03)',drawTicks:false},border:{color:'rgba(235,229,220,.08)'},
+             ticks:{color:'rgba(235,229,220,.18)',maxTicksLimit:6,callback:()=>''}},
+          y:{grid:{color:'rgba(235,229,220,.03)',drawTicks:false},border:{color:'rgba(235,229,220,.08)'},
+             ticks:{color:'rgba(235,229,220,.18)',maxTicksLimit:5}}}};
+
+function mkC(id,yFmt,tens){
+  const opts=JSON.parse(JSON.stringify(bOpts));
+  opts._vl=50;
+  opts.plugins.tooltip.callbacks={
+    title:items=>`S = $${parseFloat(items[0].label).toFixed(2)}`,
+    label:item=>`  ${item.dataset.label}: ${item.raw.toFixed(3)}`
+  };
+  opts.scales.x.ticks.callback=(v)=>{const l=payoffChart?.data?.labels?.[v];return l?'$'+parseFloat(l).toFixed(0):'';};
+  opts.scales.y.ticks.callback=yFmt;
+  return new Chart(document.getElementById(id),{type:'line',data:{labels:[],datasets:[
+    {data:[],borderColor:'rgba(100,150,240,.7)',borderWidth:1.5,pointRadius:0,tension:tens||0,label:'Call'},
+    {data:[],borderColor:'rgba(220,100,100,.7)',borderWidth:1.5,pointRadius:0,tension:tens||0,label:'Put'}
+  ]},options:opts});
+}
+const payoffChart=mkC('chart-payoff',v=>'$'+v.toFixed(1),0);
+const deltaChart =mkC('chart-delta', v=>v.toFixed(2),.35);
+payoffChart.data.datasets[0].label='Call P&L'; payoffChart.data.datasets[1].label='Put P&L';
+deltaChart.data.datasets[0].label='Call Δ';    deltaChart.data.datasets[1].label='Put Δ';
+deltaChart.options.scales.y.min=-1.05;deltaChart.options.scales.y.max=1.05;
+
+// ── UI update ──────────────────────────────────────────────
+function fmt(v,dp=4){return isNaN(v)?'—':v.toFixed(dp);}
+function fmtS(v,dp=4){return isNaN(v)?'—':(v>=0?'+':'')+v.toFixed(dp);}
+
+function update(){
+  const S=+document.getElementById('S').value,K=+document.getElementById('K').value,
+        Td=+document.getElementById('T').value,sig=+document.getElementById('sigma').value/100,
+        r=+document.getElementById('r').value/100,Ty=Td/365;
+  document.getElementById('S-val').textContent='$'+S.toFixed(2);
+  document.getElementById('K-val').textContent='$'+K.toFixed(2);
+  document.getElementById('T-val').textContent=Td+' day'+(Td===1?'':'s');
+  document.getElementById('sigma-val').textContent=(sig*100).toFixed(1)+'%';
+  document.getElementById('r-val').textContent=(r*100).toFixed(2)+'%';
+
+  const res=bsm(S,K,Ty,sig,r);
+  document.getElementById('call-price').textContent='$'+fmt(res.call);
+  document.getElementById('put-price').textContent='$'+fmt(res.put);
+  document.getElementById('call-d-sub').textContent='Δ '+fmt(res.delta.call);
+  document.getElementById('put-d-sub').textContent='Δ '+fmt(res.delta.put);
+
+  const ratio=S/K,mEl=document.getElementById('moneyness-val');
+  mEl.textContent=ratio>1.005?'ITM':ratio<.995?'OTM':'ATM';
+  mEl.style.color=ratio>1.005?'#7ecb8f':ratio<.995?'#e07070':'var(--accent)';
+  document.getElementById('moneyness-sub').textContent='S/K = '+ratio.toFixed(4);
+
+  const move=S*sig*Math.sqrt(Ty);
+  document.getElementById('implied-move').textContent='±$'+move.toFixed(2);
+
+  document.getElementById('g-delta-call').textContent=fmt(res.delta.call);
+  document.getElementById('g-delta-put').textContent=fmt(res.delta.put);
+  document.getElementById('g-gamma').textContent=fmt(res.gamma,6);
+  document.getElementById('g-theta-call').textContent=fmt(res.theta.call);
+  document.getElementById('g-theta-put').textContent=fmt(res.theta.put);
+  document.getElementById('g-vega').textContent=fmt(res.vega);
+  document.getElementById('g-rho-call').textContent=fmt(res.rho.call);
+  document.getElementById('g-rho-put').textContent=fmt(res.rho.put);
+
+  const parity=res.call-res.put-S+K*Math.exp(-r*Ty),ok=Math.abs(parity)<.01;
+  document.getElementById('term-out').innerHTML=
+    `<span style="opacity:.3">&gt; BSM_COMPUTE</span>\n`+
+    `  S=$${S.toFixed(2)}  K=$${K.toFixed(2)}  T=${Td}d (<span class="ta">${Ty.toFixed(5)}</span>yr)  σ=<span class="ta">${(sig*100).toFixed(2)}%</span>  r=<span class="ta">${(r*100).toFixed(2)}%</span>\n`+
+    `  d1 = <span class="tw">${fmtS(res.d1,5)}</span>   d2 = <span class="tw">${fmtS(res.d2,5)}</span>\n`+
+    `  CALL = <span class="tw">$${fmt(res.call,6)}</span>   PUT = <span class="tw">$${fmt(res.put,6)}</span>\n`+
+    `  PUT_CALL_PARITY ${ok?'<span class="tg">✓':'<span class="tr2">✗'} ${fmtS(parity,9)}</span>`;
+
+  const N=101,lo=S*.5,hi=S*1.5,labels=[],cP=[],pP=[],cD=[],pD=[];
+  for(let i=0;i<N;i++){
+    const px=lo+(hi-lo)*(i/(N-1));
+    labels.push(px.toFixed(3));
+    cP.push(Math.max(px-K,0)-res.call);pP.push(Math.max(K-px,0)-res.put);
+    const r2=bsm(px,K,Ty,sig,r);cD.push(r2.delta.call);pD.push(r2.delta.put);
+  }
+  payoffChart.data.labels=labels;payoffChart.data.datasets[0].data=cP;payoffChart.data.datasets[1].data=pP;payoffChart.update('none');
+  deltaChart.data.labels=labels;deltaChart.data.datasets[0].data=cD;deltaChart.data.datasets[1].data=pD;deltaChart.update('none');
+}
+['S','K','T','sigma','r'].forEach(id=>document.getElementById(id).addEventListener('input',update));
+update();
+</script>
+</body>
+</html>
