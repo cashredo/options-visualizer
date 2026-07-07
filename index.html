@@ -1,7 +1,8 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Black–Scholes / Julian Quevedo</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -192,7 +193,7 @@
 <nav>
   <a href="#">← Portfolio</a>
   <span class="nav-c">Julian Quevedo</span>
-  <a href="https://github.com/cashredo" target="_blank">GitHub ↗</a>
+  <a href="https://github.com/cashredo" target="_blank" rel="noopener noreferrer">GitHub ↗</a>
 </nav>
 
 <!-- HERO -->
@@ -214,18 +215,18 @@
   <h2 class="sec-h">What is this?</h2>
   <div class="wit-body">
     <p class="wit-p">
-      The <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model" target="_blank" rel="noopener" class="wit-link">Black–Scholes model ↗</a>
+      The <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model" target="_blank" rel="noopener noreferrer" class="wit-link">Black–Scholes model ↗</a>
       is a mathematical framework for pricing European-style options contracts. Given five inputs —
       stock price, strike price, time to expiry, risk-free rate, and implied volatility — it
       produces a fair-value estimate for a call or put, and a set of sensitivities known as
-      the <a href="https://en.wikipedia.org/wiki/Greeks_(finance)" target="_blank" rel="noopener" class="wit-link">Greeks ↗</a>.
+      the <a href="https://en.wikipedia.org/wiki/Greeks_(finance)" target="_blank" rel="noopener noreferrer" class="wit-link">Greeks ↗</a>.
     </p>
     <p class="wit-p">
       This tool lets you drag those inputs in real time and watch how
-      <a href="https://en.wikipedia.org/wiki/Delta_(letter)#Finance" target="_blank" rel="noopener" class="wit-link">Delta ↗</a>,
-      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Gamma" target="_blank" rel="noopener" class="wit-link">Gamma ↗</a>,
-      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Theta" target="_blank" rel="noopener" class="wit-link">Theta ↗</a>, and
-      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Vega" target="_blank" rel="noopener" class="wit-link">Vega ↗</a>
+      <a href="https://en.wikipedia.org/wiki/Delta_(letter)#Finance" target="_blank" rel="noopener noreferrer" class="wit-link">Delta ↗</a>,
+      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Gamma" target="_blank" rel="noopener noreferrer" class="wit-link">Gamma ↗</a>,
+      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Theta" target="_blank" rel="noopener noreferrer" class="wit-link">Theta ↗</a>, and
+      <a href="https://en.wikipedia.org/wiki/Greeks_(finance)#Vega" target="_blank" rel="noopener noreferrer" class="wit-link">Vega ↗</a>
       shift — built from first principles using the closed-form Black–Scholes equations, no libraries.
     </p>
   </div>
@@ -233,7 +234,7 @@
 
 <!-- PARAMETERS -->
 <section>
-  <div class="sec-lbl">01 — Model Parameters <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model" target="_blank" rel="noopener" class="wiki-lnk">Black–Scholes ↗</a></div>
+  <div class="sec-lbl">01 — Model Parameters <a href="https://en.wikipedia.org/wiki/Black%E2%80%93Scholes_model" target="_blank" rel="noopener noreferrer" class="wiki-lnk">Black–Scholes ↗</a></div>
   <h2 class="sec-h">Set your<br>variables.</h2>
 
   <div class="ticker-row">
@@ -247,21 +248,21 @@
     <div>
       <div class="pr">
         <div class="ph">
-          <div class="pn"><a href="https://en.wikipedia.org/wiki/Underlying" target="_blank" rel="noopener" class="wiki-lnk"><em>S</em> Stock Price<span class="wiki-sup">↗</span></a></div>
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Underlying" target="_blank" rel="noopener noreferrer" class="wiki-lnk"><em>S</em> Stock Price<span class="wiki-sup">↗</span></a></div>
           <div class="pv" id="S-val">$100.00</div>
         </div>
         <input type="range" id="S" min="1" max="500" value="100" step="0.5" />
       </div>
       <div class="pr">
         <div class="ph">
-          <div class="pn"><a href="https://en.wikipedia.org/wiki/Strike_price" target="_blank" rel="noopener" class="wiki-lnk"><em>K</em> Strike Price<span class="wiki-sup">↗</span></a></div>
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Strike_price" target="_blank" rel="noopener noreferrer" class="wiki-lnk"><em>K</em> Strike Price<span class="wiki-sup">↗</span></a></div>
           <div class="pv" id="K-val">$100.00</div>
         </div>
         <input type="range" id="K" min="1" max="500" value="100" step="0.5" />
       </div>
       <div class="pr">
         <div class="ph">
-          <div class="pn"><a href="https://en.wikipedia.org/wiki/Expiration_(options)" target="_blank" rel="noopener" class="wiki-lnk"><em>T</em> Days to Expiry<span class="wiki-sup">↗</span></a></div>
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Expiration_(options)" target="_blank" rel="noopener noreferrer" class="wiki-lnk"><em>T</em> Days to Expiry<span class="wiki-sup">↗</span></a></div>
           <div class="pv" id="T-val">30 days</div>
         </div>
         <input type="range" id="T" min="1" max="730" value="30" step="1" />
@@ -270,14 +271,14 @@
     <div>
       <div class="pr">
         <div class="ph">
-          <div class="pn"><a href="https://en.wikipedia.org/wiki/Implied_volatility" target="_blank" rel="noopener" class="wiki-lnk"><em>σ</em> Implied Volatility<span class="wiki-sup">↗</span></a></div>
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Implied_volatility" target="_blank" rel="noopener noreferrer" class="wiki-lnk"><em>σ</em> Implied Volatility<span class="wiki-sup">↗</span></a></div>
           <div class="pv" id="sigma-val">30.0%</div>
         </div>
         <input type="range" id="sigma" min="1" max="200" value="30" step="0.5" />
       </div>
       <div class="pr">
         <div class="ph">
-          <div class="pn"><a href="https://en.wikipedia.org/wiki/Risk-free_interest_rate" target="_blank" rel="noopener" class="wiki-lnk"><em>r</em> Risk-Free Rate<span class="wiki-sup">↗</span></a></div>
+          <div class="pn"><a href="https://en.wikipedia.org/wiki/Risk-free_interest_rate" target="_blank" rel="noopener noreferrer" class="wiki-lnk"><em>r</em> Risk-Free Rate<span class="wiki-sup">↗</span></a></div>
           <div class="pv" id="r-val">5.30%</div>
         </div>
         <input type="range" id="r" min="0" max="20" value="5.3" step="0.1" />
@@ -469,15 +470,22 @@ function bsm(S,K,T,sig,r){
 }
 
 // ── Finnhub live quote ─────────────────────────────────────
-const FKEY = window.FINNHUB_KEY || '';
+const FKEY = (typeof window.FINNHUB_KEY === 'string' && window.FINNHUB_KEY.indexOf('YOUR_') === -1) ? window.FINNHUB_KEY : '';
 async function fetchQuote(){
-  const sym=document.getElementById('ticker-in').value.trim().toUpperCase();
+  const sym=document.getElementById('ticker-in').value.trim().toUpperCase().replace(/[^A-Z0-9.\-^]/g,'');
   if(!sym)return;
   const status=document.getElementById('ticker-status');
+  if(!FKEY){
+    status.textContent='live quotes off on this deploy — sliders still work';
+    status.style.color='var(--dimmer)';
+    return;
+  }
   status.textContent='fetching…';
   status.style.color='var(--dimmer)';
   try{
     const res=await fetch(`https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${FKEY}`);
+    if(res.status===401||res.status===403){status.textContent='API key invalid or expired';status.style.color='#e07070';return;}
+    if(res.status===429){status.textContent='rate limit hit — try again in a minute';status.style.color='#e07070';return;}
     const d=await res.json();
     if(!d.c||d.c===0){status.textContent='symbol not found';return;}
     const sEl=document.getElementById('S'), kEl=document.getElementById('K');
